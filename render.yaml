@@ -1,0 +1,24 @@
+# Render Blueprint Specification for Spotter Weather-Aware Truck Routing Backend
+services:
+  - type: web
+    name: spotter-weather-routing-api
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.prod
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: SECURE_SSL_REDIRECT
+        value: "true"
+      - key: CORS_ALLOW_ALL_ORIGINS
+        value: "false"
+      - key: OPENROUTESERVICE_API_KEY
+        sync: false
