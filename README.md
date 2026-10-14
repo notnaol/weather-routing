@@ -149,8 +149,8 @@ Routes are ranked according to a deterministic multi-tiered lexicographic priori
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/<your-username>/spotter-weather-routing.git
-cd spotter-weather-routing
+git clone https://github.com/notnaol/weather-routing.git
+cd weather-routing
 
 # 2. Setup Backend
 cd backend
