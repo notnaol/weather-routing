@@ -5,8 +5,8 @@
 [![Frontend](https://img.shields.io/badge/frontend-React%2019%20%2B%20TypeScript-61DAFB?style=flat&logo=react)](https://react.dev/)
 [![Styling](https://img.shields.io/badge/styling-Tailwind%20CSS%20v4-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 [![Map Engine](https://img.shields.io/badge/map-MapLibre%20GL%20JS-3969EC?style=flat&logo=maplibre)](https://maplibre.org/)
-[![Tests](https://img.shields.io/badge/tests-93%20passed%20(100%25)-brightgreen?style=flat)](#testing)
-[![Code Quality](https://img.shields.io/badge/linter-Ruff%20%2B%20Oxlint-blueviolet?style=flat)](#code-quality)
+[![Tests](https://img.shields.io/badge/tests-93%20passed%20(100%25)-brightgreen?style=flat)](#testing--code-quality)
+[![Code Quality](https://img.shields.io/badge/linter-Ruff%20%2B%20Oxlint-blueviolet?style=flat)](#testing--code-quality)
 
 A production-grade, full-stack decision-support system that helps commercial truck drivers and fleet dispatchers select the safest, most time-efficient highway route. It evaluates real-time and forecasted weather (wind speed, rain, and snow intensity) against commercial vehicle gross weight, samples risk along route corridors at the truck's exact estimated time of arrival (ETA), and renders interactive GPU-accelerated heatmaps with 0–48 hour forecast time scrubbing.
 
@@ -16,22 +16,18 @@ A production-grade, full-stack decision-support system that helps commercial tru
 
 1. [Architecture & System Design](#architecture--system-design)
 2. [Requirements Traceability](#requirements-traceability)
-3. [Core Logic & Algorithms (The 40%)](#core-logic--algorithms-the-40)
+3. [Core Logic & Algorithms](#core-logic--algorithms)
    - [Risk Classification Thresholds](#risk-classification-thresholds)
    - [Commercial Truck Load Rules](#commercial-truck-load-rules)
    - [Midpoint Segment Distance Weighting](#midpoint-segment-distance-weighting)
    - [Lexicographic Route Ranking](#lexicographic-route-ranking)
-4. [Deployment Guide (Render & Vercel)](#deployment-guide-render--vercel)
-   - [Backend Deployment on Render](#1-backend-deployment-on-render)
-   - [Frontend Deployment on Vercel](#2-frontend-deployment-on-vercel)
-   - [Connecting Frontend to Backend (CORS & Environment)](#3-connecting-frontend-to-backend)
-5. [Local Development & Quick Start](#local-development--quick-start)
+4. [Local Development & Quick Start](#local-development--quick-start)
    - [Prerequisites](#prerequisites)
    - [Manual Local Setup](#manual-local-setup)
    - [Docker Compose](#docker-compose-setup)
-6. [API Reference & OpenAPI Specification](#api-reference--openapi-specification)
-7. [Testing & Code Quality](#testing--code-quality)
-8. [5–10 Minute Loom Walkthrough Script](#510-minute-loom-walkthrough-script)
+5. [API Reference & OpenAPI Specification](#api-reference--openapi-specification)
+6. [Testing & Code Quality](#testing--code-quality)
+7. [License](#license)
 
 ---
 
@@ -39,7 +35,7 @@ A production-grade, full-stack decision-support system that helps commercial tru
 
 ```
 +-----------------------------------------------------------------------------------+
-|                                 FRONTEND (Vercel)                                 |
+|                                     FRONTEND                                      |
 |                                                                                   |
 |  React 19 + TypeScript + Vite + Tailwind CSS v4 + MapLibre GL JS + TanStack Query |
 |                                                                                   |
@@ -52,7 +48,7 @@ A production-grade, full-stack decision-support system that helps commercial tru
                                            | HTTPS / JSON
                                            v
 +-----------------------------------------------------------------------------------+
-|                                 BACKEND (Render)                                  |
+|                                     BACKEND                                       |
 |                                                                                   |
 |  Django 5.2 LTS + Django REST Framework + WhiteNoise + Gunicorn                   |
 |                                                                                   |
@@ -72,30 +68,30 @@ A production-grade, full-stack decision-support system that helps commercial tru
 ```
 
 ### Architectural Principles
-- **Pure Functional Core**: The risk engine, load override classifier, midpoint segment integrator, and lexicographic ranking algorithm are 100% pure Python functions with zero I/O or network dependencies.
+- **Pure Functional Core**: The risk engine, load override classifier, midpoint segment integrator, and lexicographic ranking algorithm are pure Python functions with zero I/O or network dependencies.
 - **Provider Pattern**: Upstream routing, geocoding, and weather providers are encapsulated behind abstract interfaces with automated fallbacks to keep tests reproducible and services resilient.
 - **Stateless & Database-Light**: The application computes route risk dynamically based on real-time routing geometry and forecasted atmospheric conditions; no persistent trip data storage is required.
-- **Client-Side Zero-Latency Scrubbing**: The corridor heatmap matrix (48 hours $\times$ $N$ points) is fetched once and pre-cached in memory, allowing 60 FPS slider scrubbing and auto-play animations without redundant network requests.
+- **Client-Side Zero-Latency Scrubbing**: The corridor heatmap matrix (48 hours $\times$ $N$ points) is fetched once and cached in memory, allowing responsive slider scrubbing and auto-play animations without redundant network requests.
 
 ---
 
 ## ✅ Requirements Traceability
 
-| ID | Brief Requirement | Implementation Location | Test Verification | Status |
-|:---|:------------------|:------------------------|:------------------|:------:|
-| **R1** | User inputs: Origin, Destination, Departure Time, Load Weight, Interval | [`TripForm.tsx`](file:///c:/Users/Naol/Music/scatter/frontend/src/components/TripForm.tsx), [`serializers.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/trips/serializers.py) | Form Zod validation & serializer tests | ✅ Done |
-| **R2** | 3 route options from a truck routing API | [`service.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/routing/service.py) (`driving-hgv`, alternatives) | `test_routing_providers.py` | ✅ Done |
-| **R3** | Weather sampled every 10 / 25 / 50 miles at truck's ETA | [`geometry.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/routing/geometry.py), [`weather/service.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/weather/service.py) | `test_geometry.py`, `test_weather_providers.py` | ✅ Done |
-| **R4** | Risk from atmospheric thresholds table (Wind, Rain, Snow) | [`classifier.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/risk/classifier.py) (`classify_condition`) | `test_classifier.py` | ✅ Done |
-| **R5** | 3 Commercial truck load override rules | [`classifier.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/risk/classifier.py) (`apply_load_rules`) | `test_classifier.py` | ✅ Done |
-| **R6** | Best route recommendation ranking | [`ranking.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/risk/ranking.py) (`rank_routes`) | `test_ranking.py` | ✅ Done |
-| **R7** | Interactive map with routes, checkpoints, risk levels, ETAs, summaries | [`TripMap.tsx`](file:///c:/Users/Naol/Music/scatter/frontend/src/components/TripMap.tsx), [`RouteCard.tsx`](file:///c:/Users/Naol/Music/scatter/frontend/src/components/RouteCard.tsx) | MapLibre vector layers & popups | ✅ Done |
-| **R8** | Weather heatmap along corridor with 0–48 hour slider | [`HeatmapControls.tsx`](file:///c:/Users/Naol/Music/scatter/frontend/src/components/HeatmapControls.tsx), [`trips/views.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/trips/views.py) | `test_api.py` (heatmap endpoint) | ✅ Done |
-| **R9** | GitHub repository, hosted app (Render + Vercel), Loom walkthrough | Repo root, `render.yaml`, `vercel.json`, `README.md` | Deployment configs & test suites | ✅ Done |
+| ID | Requirement | Implementation Location | Test Verification | Status |
+|:---|:------------|:------------------------|:------------------|:------:|
+| **R1** | User inputs: Origin, Destination, Departure Time, Load Weight, Interval | [`TripForm.tsx`](frontend/src/components/TripForm.tsx), [`serializers.py`](backend/apps/trips/serializers.py) | Form Zod validation & serializer tests | ✅ Done |
+| **R2** | 3 route options from a truck routing API | [`service.py`](backend/apps/routing/service.py) (`driving-hgv`, alternatives) | `test_routing_providers.py` | ✅ Done |
+| **R3** | Weather sampled every 10 / 25 / 50 miles at truck's ETA | [`geometry.py`](backend/apps/routing/geometry.py), [`weather/service.py`](backend/apps/weather/service.py) | `test_geometry.py`, `test_weather_providers.py` | ✅ Done |
+| **R4** | Risk from atmospheric thresholds table (Wind, Rain, Snow) | [`classifier.py`](backend/apps/risk/classifier.py) (`classify_condition`) | `test_classifier.py` | ✅ Done |
+| **R5** | Commercial truck load override rules | [`classifier.py`](backend/apps/risk/classifier.py) (`apply_load_rules`) | `test_classifier.py` | ✅ Done |
+| **R6** | Best route recommendation ranking | [`ranking.py`](backend/apps/risk/ranking.py) (`rank_routes`) | `test_ranking.py` | ✅ Done |
+| **R7** | Interactive map with routes, checkpoints, risk levels, ETAs, summaries | [`TripMap.tsx`](frontend/src/components/TripMap.tsx), [`RouteCard.tsx`](frontend/src/components/RouteCard.tsx) | MapLibre vector layers & popups | ✅ Done |
+| **R8** | Weather heatmap along corridor with 0–48 hour slider | [`HeatmapControls.tsx`](frontend/src/components/HeatmapControls.tsx), [`trips/views.py`](backend/apps/trips/views.py) | `test_api.py` (heatmap endpoint) | ✅ Done |
+| **R9** | Clean repository and automated CI pipeline | GitHub Actions workflow, unit & integration test suites | Full test suites passing | ✅ Done |
 
 ---
 
-## 🧠 Core Logic & Algorithms (The 40%)
+## 🧠 Core Logic & Algorithms
 
 The core business logic is located in `backend/apps/risk/` and operates strictly on typed domain models (`Checkpoint`, `CheckpointWeather`, `RouteSummary`, `RiskLevel`).
 
@@ -122,7 +118,7 @@ Truck gross weight heavily influences rollover susceptibility under crosswinds. 
 
 ### Midpoint Segment Distance Weighting
 
-To prevent sampling interval distortion when calculating total miles driven under each hazard level, the route distance is apportioned into Voronoi-like segments using midpoint boundaries between adjacent checkpoints:
+To prevent sampling interval distortion when calculating total miles driven under each hazard level, the route distance is apportioned into segments using midpoint boundaries between adjacent checkpoints:
 
 $$\text{Segment Mileage}_i = \text{boundary}_{i+1} - \text{boundary}_i$$
 
@@ -139,77 +135,6 @@ Routes are ranked according to a deterministic multi-tiered lexicographic priori
 3. **Secondary Metric**: Fewest **High** miles.
 4. **Tertiary Metric**: Lowest distance-weighted **Average Risk**.
 5. **Tie-breaker**: Shortest total **Travel Time** (minutes).
-
----
-
-## 🚀 Deployment Guide (Render & Vercel)
-
-### 1. Backend Deployment on Render
-
-The backend is configured for deployment on [Render](https://render.com) using Python 3.11/3.13, Gunicorn, and WhiteNoise.
-
-#### Option A: 1-Click Blueprint Deploy (`render.yaml`)
-1. Fork or push this repository to GitHub.
-2. In the Render Dashboard, click **New +** $\rightarrow$ **Blueprint**.
-3. Connect your repository. Render will automatically detect `render.yaml`.
-4. Click **Apply**.
-
-#### Option B: Manual Web Service Setup
-1. In Render, select **New +** $\rightarrow$ **Web Service**.
-2. Connect your repository.
-3. Configure the following fields:
-   - **Name**: `spotter-weather-routing-api`
-   - **Root Directory**: `backend`
-   - **Environment**: `Python`
-   - **Region**: `Oregon (US West)` or your preferred region
-   - **Build Command**: `chmod +x build.sh && ./build.sh`
-   - **Start Command**: `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT`
-4. Add the following **Environment Variables**:
-
-| Variable | Value | Description |
-|:---|:---|:---|
-| `PYTHON_VERSION` | `3.11.9` | Pinned Python runtime |
-| `DJANGO_SETTINGS_MODULE` | `config.settings.prod` | Production Django settings |
-| `DJANGO_SECRET_KEY` | *(Generate a 50+ char random string)* | Cryptographic signing key |
-| `SECURE_SSL_REDIRECT` | `true` | Enforces HTTPS behind proxy |
-| `CORS_ALLOWED_ORIGIN_REGEXES` | `^https:\/\/.*\.vercel\.app$` | Permits all Vercel deploy previews |
-| `CORS_ALLOWED_ORIGINS` | `https://your-app.vercel.app` | Production frontend domain |
-| `OPENROUTESERVICE_API_KEY` | *(Your OpenRouteService key)* | Optional; falls back safely to corridors |
-
-5. Click **Create Web Service**. Once deployed, verify your service by navigating to:
-   `https://<your-service>.onrender.com/api/v1/health` (should return `{"status":"ok"}`).
-
----
-
-### 2. Frontend Deployment on Vercel
-
-The frontend is built with Vite and React 19 and is configured for deployment on [Vercel](https://vercel.com).
-
-1. In the Vercel Dashboard, click **Add New...** $\rightarrow$ **Project**.
-2. Import your GitHub repository.
-3. Configure project settings:
-   - **Framework Preset**: `Vite`
-   - **Root Directory**: Click *Edit* and select `frontend`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-4. Expand **Environment Variables** and add:
-
-| Variable | Value |
-|:---|:---|
-| `VITE_API_BASE_URL` | `https://<your-render-service>.onrender.com/api/v1` |
-
-5. Click **Deploy**. Vercel will install dependencies, compile the TypeScript bundle, and publish the app with global CDN distribution.
-
----
-
-### 3. Connecting Frontend to Backend
-
-1. Copy your Vercel deployment URL (e.g., `https://spotter-truck-routing.vercel.app`).
-2. In the Render Dashboard under **Environment Variables**, ensure either:
-   - `CORS_ALLOWED_ORIGINS` includes `https://spotter-truck-routing.vercel.app`, or
-   - `CORS_ALLOWED_ORIGIN_REGEXES` is set to `^https:\/\/.*\.vercel\.app$`.
-3. In Vercel, ensure `VITE_API_BASE_URL` points to your Render API without a trailing slash (e.g. `https://spotter-api.onrender.com/api/v1`).
-4. Re-deploy frontend if the backend URL was added after initial build.
 
 ---
 
@@ -272,7 +197,7 @@ Interactive Swagger UI documentation is available at `/api/docs/`, and raw OpenA
 ### Key Endpoints
 
 #### 1. `GET /api/v1/health`
-Health check endpoint for container orchestrators and Render liveness probes.
+Health check endpoint for liveness probes.
 ```bash
 curl -s http://localhost:8000/api/v1/health
 # {"status":"ok"}
@@ -353,63 +278,6 @@ ruff check .
 cd ../frontend
 npm run lint
 ```
-
----
-
-## 🎥 5–10 Minute Loom Walkthrough Script
-
-This script is structured to reflect the exact evaluation rubric: **40% logic**, **35% UX/performance**, **10% code quality**, and **5% documentation**.
-
-### Section 1: Introduction & Architecture (0:00 – 1:15)
-- *"Hi everyone, welcome to the walkthrough of the Weather-Aware Truck Routing platform."*
-- **Problem Statement**: Commercial trucks face severe safety hazards from high crosswinds, heavy snow, and blinding rain. Standard navigation apps route purely for time without considering vehicle weight or atmospheric risk.
-- **Architecture**:
-  - Show the high-level architecture diagram.
-  - Explain the decoupling: React 19 frontend on Vercel, Django 5.2 LTS backend on Render.
-  - Point out that all risk calculations are pure functional Python with zero network dependencies.
-
-### Section 2: Core Logic & Risk Engine (1:15 – 4:00) — *40% Weight*
-- Open [`backend/apps/risk/classifier.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/risk/classifier.py) and [`backend/apps/risk/ranking.py`](file:///c:/Users/Naol/Music/scatter/backend/apps/risk/ranking.py).
-- **Thresholds**: Walk through wind ($<25$, $25-34$, $35-44$, $45-54$, $\ge 55$), rain, and snow classification.
-- **Commercial Load Overrides**: Show how gross weight escalates risk:
-  1. $55\text{ mph}$ wind $\rightarrow$ No Travel for any truck.
-  2. $45-54\text{ mph}$ wind $+ >30,000\text{ lb}$ $\rightarrow$ No Travel due to high profile tip-over hazard.
-  3. $35-44\text{ mph}$ wind $+ >40,000\text{ lb}$ $\rightarrow$ Severe risk.
-- **Midpoint Mileage Integration**: Explain how midpoint boundaries between checkpoints prevent sampling interval bias.
-- **Lexicographic Ranking**: Show how the algorithm sorts routes: fewest Severe miles $\rightarrow$ fewest High miles $\rightarrow$ lowest average risk $\rightarrow$ shortest travel time.
-- Show test execution: run `pytest` in the terminal to display all 93 unit tests passing.
-
-### Section 3: User Experience & Interactive Heatmap (4:00 – 7:15) — *35% Weight*
-- Switch to the live application in the browser ([http://localhost:5173](http://localhost:5173)).
-- **Trip Form**:
-  - Show debounced geocoding autocomplete for origin and destination.
-  - Click the **"Chicago $\rightarrow$ Denver"** preset button.
-  - Adjust the cargo weight slider to $42,000\text{ lb}$ and select $25\text{ miles}$ checkpoint interval.
-  - Click **Analyze Weather Routes**.
-- **Route Cards & Recommendation**:
-  - Point out the **#1 Recommended** badge with the plain-English explanation.
-  - Highlight the Severe miles, High miles, and average risk rating comparisons.
-- **MapLibre GL Map**:
-  - Show all 3 alternative route polylines rendered with WebGL.
-  - Click between route cards to watch the active route highlight.
-  - Click on a colored checkpoint circle to reveal the popup showing local ETA, temperature, wind, rain, snow, and the risk override reason.
-- **0–48 Hour Corridor Heatmap**:
-  - Toggle the Heatmap overlay **ON**.
-  - Drag the 0–48h slider to scrub through forecast hours with zero lag.
-  - Click **Animate** to show auto-play at 1x and 2x speed.
-  - Switch between **Risk**, **Wind Field**, and **Precipitation** modes.
-  - Click a corridor sensor point to inspect conditions at that exact hour.
-- **Mobile Responsiveness**: Resize the browser window to demonstrate the mobile top-bar switcher (`[Plan]` vs `[Map]`).
-
-### Section 4: Code Quality & API Schema (7:15 – 8:30) — *10% Weight*
-- Open Swagger UI at `/api/docs/` and demonstrate the OpenAPI 3.0 documentation generated by `drf-spectacular`.
-- Run `ruff check .` on backend and `npm run lint` (`oxlint`) on frontend to demonstrate **0 lint errors across the entire codebase**.
-- Highlight clean type definitions and modular structure.
-
-### Section 5: Deployment & Wrap-Up (8:30 – 9:30) — *5% Weight*
-- Show `render.yaml` for Render backend hosting and `vercel.json` for Vercel frontend hosting.
-- Summarize that all brief requirements (R1 through R9) are met.
-- Thank the viewer and close.
 
 ---
 
